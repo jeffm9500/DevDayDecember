@@ -62,6 +62,7 @@ string setColour(int colour);
 string divider(" ------------------------------------- ");
 direction dir = up; //keep track of snake direction so you cant do a 180; initialize facing up
 int score = 0;
+int prevScore = 0;
 int hiscore = 0;
 bool enableColour = false;
 
@@ -175,8 +176,6 @@ int main( int argc, char * argv[] ){
 
     } while (!quit);
     
-    
-    
 }
 
 
@@ -202,23 +201,14 @@ int playGame(int hiscore){
 
     if(enableColour) setColour(0); //reset colours
     cout << "~~~ NEW GAME ~~~" << endl;
+    bool newGame = true;
+    
+    
     
 
     while(input != GAMEOVER){
-        // increase difficulty based on score
-        if (score == 5){
-            TIMER = 650;
-        } else if (score == 10) {
-            TIMER = 600;
-        } else if (score == 20) {
-            TIMER = 500;
-        } else if (score == 30) {
-            TIMER = 400;
-        } else if (score == 40) {
-            TIMER = 300;
-        } else if (score == 50) {
-            TIMER = 200;
-        }
+        
+        
         Sleep(TIMER);
         food = updateGrid(grid, &snake, ate, food, input);
 
@@ -226,6 +216,14 @@ int playGame(int hiscore){
         drawGame(grid, 5);
         ate = false;
 
+        //wait for input on startup
+        if (newGame) {
+            getch();
+            while(!_kbhit()){
+                Sleep(10);
+            }
+        }
+        newGame = false;
 
         input = getInput(dir);
         
@@ -347,6 +345,13 @@ int playGame(int hiscore){
                     break;
             }
 
+        // increase difficulty based on score
+        if (score != prevScore && (score % 5 == 0)) {
+            //every 5 score, increase speed by 50ms
+            TIMER -= 50;
+        }
+        if (TIMER < 100) TIMER = 100; //enforce minimum time
+        prevScore = score;
 
     }
 
@@ -367,10 +372,6 @@ int playGame(int hiscore){
 
 
 void drawGame(char grid[][GRID_SIZE], int colour){
-
-    
-    
-    
 
     if(enableColour) {
         printf("%s",setColour(colour).c_str());
