@@ -47,6 +47,7 @@ enum direction{
 };
 
 // Functions
+int playGame(int hiscore);
 void drawGame(char grid[][GRID_SIZE], int colour);
 void push(Node** head, int x, int y);
 void append(Node** head, int x, int y);
@@ -60,23 +61,23 @@ string setColour(int colour);
 // Global Variables
 string divider(" ------------------------------------- ");
 direction dir = up; //keep track of snake direction so you cant do a 180; initialize facing up
+int score = 0;
+int hiscore = 0;
+bool enableColour = false;
 
 
-
-int main( int argc, char * argv[] ){
-    srand(time(NULL));
-    
-    /*
+/*
     Create game board
     Snake is linked list of pairs (x, y) that represent the game tiles it occupies
     Every turn, add 1 snake pair to the front, and remove 1 snake pair from the back
     If the snake eats a food, then push the food (x, y) to the snake
 
     TO DO:
-    - create score for player (print out at game over)
-        - hiscores?
-    - add replay without restarting the build (option to quit or restart)
+
+
     - more efficient food placement for late game
+    - make exportable .exe for coworkers to try
+    - remove colours for default command prompt
     Stretch goal:
     - implement automatic movement (move 1x every second or something)
         - arrow keys buffer input for next tick
@@ -100,29 +101,125 @@ int main( int argc, char * argv[] ){
     "\033[36m"	Cyan text.
     "\033[37m"	White text.
 
-
-
     */
+
+int main( int argc, char * argv[] ){
+    srand(time(NULL));
+
+    bool quit = false;
+
+    printf("Welcome to the Dev Day Snake Game created by Jeff!\nUse the arrow keys to move, and the escape key to quit.\n");
+
+    // Toggle for colours (since they arent supported with every terminal)
+    printf("Enable colours? [y/n] (disable them if using the default command prompt)\n");
+    while(!_kbhit()){
+        Sleep(10);
+    }
+    int c = getch();
+    switch(c) {
+        case 'n':
+            enableColour = false;
+            printf("turning OFF colour\n");
+            break;
+        case 'N':
+            enableColour = false;
+            break;
+        case 'y':
+            enableColour = true;
+            printf("turning ON colour\n");
+            break;
+        case 'Y':
+            enableColour = true;
+            break;
+        case KEY_ESCAPE:
+            quit = true;
+            break;
+        case 'q':
+            quit = true;
+            break;
+        default:
+            break;
+    }
+
     
+    
+    do {
+        hiscore = playGame(hiscore);
+        printf("Play again? [y/n]\n");
+        while(!_kbhit()){
+            Sleep(10);
+        }
+        int c = getch();
+        switch(c) {
+            case 'n':
+                quit = true;
+                break;
+            case 'N':
+                quit = true;
+                break;
+            case 'y':
+                quit = false;
+                break;
+            case 'Y':
+                quit = false;
+                break;
+            case KEY_ESCAPE:
+                quit = true;
+                break;
+            case 'q':
+                quit = true;
+                break;
+            default:
+                continue;
+        } 
+
+    } while (!quit);
+    
+    
+    
+}
+
+
+
+//================================================================================================================================
+
+int playGame(int hiscore){
     char grid[GRID_SIZE][GRID_SIZE];
     Node* snake = new Node(int(GRID_SIZE/2), int(GRID_SIZE/2)); //inital snake location, middle of the board
-    printf("Snake starting at: %d, %d\n",int(GRID_SIZE/2), int(GRID_SIZE/2));
-    printf("Use the arrow keys to move the snake\n");
+    //printf("Snake starting at: %d, %d\n",int(GRID_SIZE/2), int(GRID_SIZE/2));
+    //printf("Use the arrow keys to move the snake\n");
     append(&snake, int(GRID_SIZE/2) + DOWN, int(GRID_SIZE/2));
     append(&snake, int(GRID_SIZE/2) + DOWN + DOWN, int(GRID_SIZE/2));
     int snakeLength = 3;
     int *food = nullptr;
     bool ate = false;
+    int head_x, head_y;
     
     int input = KEY_UP; //intialize snake head facing up
-    //int score = 0;
+    dir = up;
+    int TIMER = 700; //Speed (ms) between ticks. Will decrease as difficulty increases
 
-    setColour(0); //reset colours
+
+    if(enableColour) setColour(0); //reset colours
     cout << "~~~ NEW GAME ~~~" << endl;
     
 
     while(input != GAMEOVER){
-
+        // increase difficulty based on score
+        if (score == 5){
+            TIMER = 650;
+        } else if (score == 10) {
+            TIMER = 600;
+        } else if (score == 20) {
+            TIMER = 500;
+        } else if (score == 30) {
+            TIMER = 400;
+        } else if (score == 40) {
+            TIMER = 300;
+        } else if (score == 50) {
+            TIMER = 200;
+        }
+        Sleep(TIMER);
         food = updateGrid(grid, &snake, ate, food, input);
 
 
@@ -131,6 +228,7 @@ int main( int argc, char * argv[] ){
 
 
         input = getInput(dir);
+        
         if(input == KEY_ESCAPE){
             cout << "escape key pressed" << endl;
             break; //exit game
@@ -138,10 +236,10 @@ int main( int argc, char * argv[] ){
             break;
         }
 
-        int head_x = snake->x;
-        int head_y = snake->y;
+        head_x = snake->x;
+        head_y = snake->y;
 
-        printf("Input: %d\n",input);
+        //printf("Input: %d\n",input);
         switch(input){
                 case KEY_UP:
                     dir = up;
@@ -150,11 +248,17 @@ int main( int argc, char * argv[] ){
                         printf("Hit the top wall!\n");
                         input = GAMEOVER;
                         break;
+                    } else if(grid[head_x-1][head_y] == '0') {
+                        // snake head has hit its body
+                        printf("Hit yourself!\n");
+                        input = GAMEOVER;
+                        break;
                     } else {
                         push(&snake, head_x-1, head_y);
                         if(food[0] == head_x-1 && food[1] == head_y){
                             // snake head has reached a food
                             snakeLength++;
+                            score++;
                             ate = true;
                         } else {
                             //snake did not eat, so delete last bit of tail (simulate movement)
@@ -170,11 +274,17 @@ int main( int argc, char * argv[] ){
                         printf("Hit the bottom wall!\n");
                         input = GAMEOVER;
                         break;
+                    } else if(grid[head_x+1][head_y] == '0') {
+                        // snake head has hit its body
+                        printf("Hit yourself!\n");
+                        input = GAMEOVER;
+                        break;
                     } else {
                         push(&snake, head_x+1, head_y);
                         if(food[0] == head_x+1 && food[1] == head_y){
                             // snake head has reached a food
                             snakeLength++;
+                            score++;
                             ate = true;
                         } else {
                             //snake did not eat, so delete last bit of tail (simulate movement)
@@ -190,11 +300,17 @@ int main( int argc, char * argv[] ){
                         printf("Hit the left wall!\n");
                         input = GAMEOVER;
                         break;
+                    } else if(grid[head_x][head_y-1] == '0') {
+                        // snake head has hit its body
+                        printf("Hit yourself!\n");
+                        input = GAMEOVER;
+                        break;
                     } else {
                         push(&snake, head_x, head_y-1);
                         if(food[0] == head_x && food[1] == head_y-1){
                             // snake head has reached a food
                             snakeLength++;
+                            score++;
                             ate = true;
                         } else {
                             //snake did not eat, so delete last bit of tail (simulate movement)
@@ -210,11 +326,17 @@ int main( int argc, char * argv[] ){
                         printf("Hit the right wall!\n");
                         input = GAMEOVER;
                         break;
+                    } else if(grid[head_x][head_y+1] == '0') {
+                        // snake head has hit its body
+                        printf("Hit yourself!\n");
+                        input = GAMEOVER;
+                        break;
                     } else {
                         push(&snake, head_x, head_y+1);
                         if(food[0] == head_x && food[1] == head_y+1){
                             // snake head has reached a food
                             snakeLength++;
+                            score++;
                             ate = true;
                         } else {
                             //snake did not eat, so delete last bit of tail (simulate movement)
@@ -228,37 +350,46 @@ int main( int argc, char * argv[] ){
 
     }
 
-
+    if(hiscore < score){
+        hiscore = score;
+    }
 
     drawGame(grid, 2);
     cout << "Game Over." << endl;
     deleteList(&snake);
-    return 0;
+    score = 0;
+    return hiscore;
 }
 
 
 
-//================================================================================================================================
+
+
 
 void drawGame(char grid[][GRID_SIZE], int colour){
 
-    printf("%s",setColour(colour).c_str());
     
-    // clear screen
-    printf("\033[2J");
-    printf("\033[%d;%dH", 1, 1);
-    //printf("\033[2J");
+    
+    
 
-    printf("colour test\n");
+    if(enableColour) {
+        printf("%s",setColour(colour).c_str());
 
+        // clear screen
+        printf("\033[2J");
+        printf("\033[%d;%dH", 1, 1);
+    } else {
+        printf("Colours disabled\n");
+        system("CLS");
+    }
     printf("\n%s\n", divider.c_str());
     for(int x=0;x<GRID_SIZE;x++){
         printf(" | ");
         for(int y=0;y<GRID_SIZE;y++){
-            if(grid[x][y] == '$'){
+            if(grid[x][y] == '$' && enableColour){
                 printf(" \033[32m%c ",grid[x][y]);
                 printf("%s",setColour(colour).c_str());
-            } else if(grid[x][y] == '0' || grid[x][y] == '^' || grid[x][y] == 'V' || grid[x][y] == '<' || grid[x][y] == '>'){
+            } else if((grid[x][y] == '0' || grid[x][y] == '^' || grid[x][y] == 'V' || grid[x][y] == '<' || grid[x][y] == '>') && enableColour){
                 printf(" \033[33m%c ",grid[x][y]);
                 printf("%s",setColour(colour).c_str());
             
@@ -271,6 +402,18 @@ void drawGame(char grid[][GRID_SIZE], int colour){
         printf("\n");
     }
     printf("%s\n", divider.c_str());
+
+    //print scores
+    if (enableColour){
+        printf("\033[33m[Score: %d]\n", score);
+        printf("\033[33m[Hiscore: %d]\n", hiscore);
+        setColour(0);
+    } else {
+        printf("[Score: %d]\n", score);
+        printf("[Hiscore: %d]\n", hiscore);
+    }
+    
+    
     return;
 
 }
@@ -283,7 +426,7 @@ void push(Node** head, int x, int y){
     new_node->next = (*head);
     //make the head pointer point to the new node
     (*head) = new_node;
-    printf("Pushing (%d, %d)\n",x,y);
+    //printf("Pushing (%d, %d)\n",x,y);
     return;
     // This code (function) is contributed by rathbhupendra
 }
@@ -302,7 +445,7 @@ void append(Node** head, int x, int y){
         last = last->next;
     }
     last->next = new_node;
-    printf("Appending (%d, %d)\n",x,y);
+    //printf("Appending (%d, %d)\n",x,y);
     return;
 }
 
@@ -420,7 +563,6 @@ int* updateGrid(char grid[GRID_SIZE][GRID_SIZE], Node** head, bool ate, int* pre
 }
 
 int getInput(direction dir){
-
     /*
     poll input until a valid input is accepted
     Acceptable inputs
@@ -434,14 +576,18 @@ int getInput(direction dir){
     
     
     */
-   cout << "dir: " << dir << endl;
+    //cout << "dir: " << dir << endl;
 
-
-
+    int c;
+    /*
     while(!_kbhit()){
         Sleep(10);
     }
-    int c = getch();
+    c = getch();
+    */
+    if(kbhit()){
+        c = getch();
+    }
     while(1) {
         /*
         if (c && c != 224 && c != KEY_ESCAPE) {
@@ -454,12 +600,12 @@ int getInput(direction dir){
             c = getch();
             //cout << "next input: " << c << endl;
             switch(c){
-                // TODO: not allow (or end game when) opposite direction inputs are given (i.e. left then right)
+
                 case KEY_ESCAPE:
-                    cout << endl << "Escape" << endl;
+                    //cout << endl << "Escape" << endl;
                     return c;
                 case KEY_UP:
-                    cout << endl << "Up" << endl;//key up
+                    //cout << endl << "Up" << endl;//key up
                     if (dir == 1){
                         // end game
                         dir = up;
@@ -467,7 +613,7 @@ int getInput(direction dir){
                     }
                     break;
                 case KEY_DOWN:
-                    cout << endl << "Down" << endl;   // key down
+                    //cout << endl << "Down" << endl;   // key down
                     if (dir == 0){
                         // end game
                         dir = down;
@@ -475,7 +621,7 @@ int getInput(direction dir){
                     }
                     break;
                 case KEY_LEFT:
-                    cout << endl << "Left" << endl;  // key left
+                    //cout << endl << "Left" << endl;  // key left
                     if (dir == 3){
                         // end game
                         dir = l;
@@ -483,7 +629,7 @@ int getInput(direction dir){
                     }
                     break;
                 case KEY_RIGHT:
-                    cout << endl << "Right" << endl;  // key right
+                    //cout << endl << "Right" << endl;  // key right
                     if (dir == 2){
                         // end game
                         dir = r;
@@ -499,13 +645,29 @@ int getInput(direction dir){
         } else if(c == KEY_ESCAPE){
             return c;
         } else {
-            continue;
+            //printf("no input, returning dir\n");
+            // No input received, so continue in the current direction
+            switch(dir) {
+                case 0:
+                    return KEY_UP;
+                case 1:
+                    return KEY_DOWN;
+                case 2: 
+                    return KEY_LEFT;
+                case 3:
+                    return KEY_RIGHT;
+                default:
+                    printf("ERROR: This should not ever be printed\n");
+                    return KEY_UP;
+
+            }
+            //continue;
         }
     
-    cout << "returning: " << (char) c << endl;
+    //cout << "returning: " << (char) c << endl;
     return c;
     }
-    cout << "escaped while loop, returning c" << endl;
+    //cout << "escaped while loop, returning c" << endl;
     return c;
     
 }
