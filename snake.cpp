@@ -196,7 +196,7 @@ int playGame(int hiscore){
     
     int input = KEY_UP; //intialize snake head facing up
     dir = up;
-    int TIMER = 700; //Speed (ms) between ticks. Will decrease as difficulty increases
+    int TIMER = 600; //Speed (ms) between ticks. Will decrease as difficulty increases
 
 
     if(enableColour) setColour(0); //reset colours
@@ -355,9 +355,8 @@ int playGame(int hiscore){
 
     }
 
-    if(hiscore < score){
-        hiscore = score;
-    }
+    if (hiscore < score) hiscore = score;
+    
 
     drawGame(grid, 2);
     cout << "Game Over." << endl;
