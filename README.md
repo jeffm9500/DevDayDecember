@@ -9,5 +9,5 @@ When the game loads, press an arrow key to begin. Then, use the arrow keys to bu
 The following DLL files (appear) to be required for this file to run:
 - libgcc_s_seh-1.dll
 - libstdc++-6.dll
-- libstdc=6.dll
+- libstdc-6.dll
 - libwinpthread-1.dll
